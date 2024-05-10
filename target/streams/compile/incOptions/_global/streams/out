@@ -1,2 +1,50 @@
 [0m[[0m[0mdebug[0m] [0m[0mCreated transactional ClassFileManager with tempDir = /home/mvitangeli/gh/boolalg/target/scala-3.4.1/classes.bak[0m
+[0m[[0m[0mdebug[0m] [0m[0mAbout to delete class files:[0m
+[0m[[0m[0mdebug[0m] [0m[0mWe backup class files:[0m
+[0m[[0m[0mdebug[0m] [0m[0mCreated transactional ClassFileManager with tempDir = /home/mvitangeli/gh/boolalg/target/scala-3.4.1/classes.bak[0m
+[0m[[0m[0mdebug[0m] [0m[0mAbout to delete class files:[0m
+[0m[[0m[0mdebug[0m] [0m[0mWe backup class files:[0m
+[0m[[0m[0mdebug[0m] [0m[0mRegistering generated classes:[0m
+[0m[[0m[0mdebug[0m] [0m[0m	SimpleParser.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Token.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Bracket$$anon$2.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Main$package.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	OperatorType$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	ExprNode.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	hello.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	SimpleParser$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Operator.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Tokenizer$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Bracket$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Operator$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Bracket.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Proposition$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Tokenizer.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	OperatorType.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Parser.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Proposition.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Main$package$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	OperatorType$$anon$1.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	ExprNode$.class[0m
+[0m[[0m[0mdebug[0m] [0m[0m	SimpleParser.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Token.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Bracket$$anon$2.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Main$package.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	OperatorType$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	ExprNode.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	hello.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	SimpleParser$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Operator.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Tokenizer$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Bracket$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Operator$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Bracket.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Proposition$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Tokenizer.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	OperatorType.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Parser.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Proposition.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	Main$package$.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	OperatorType$$anon$1.tasty[0m
+[0m[[0m[0mdebug[0m] [0m[0m	ExprNode$.tasty[0m
 [0m[[0m[0mdebug[0m] [0m[0mRemoving the temporary directory used for backing up class files: /home/mvitangeli/gh/boolalg/target/scala-3.4.1/classes.bak[0m

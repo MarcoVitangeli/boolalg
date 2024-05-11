@@ -34,10 +34,9 @@ object PrintHelper {
         val f = new File("Result.csv")
         val writter = CSVWriter.open(f)
 
-
         val m = generateTruthTable(cols.length)
 
-        writter.writeRow(cols.appended(s))
+        writter.writeRow(cols.appended(s).map(_.replace('&', '→').replace('v', '∨').replace('^', '∧')))
         for (comb <- m) {
             val params = cols.zip(comb).toMap
             val res = SimpleParser.parse(s, params)

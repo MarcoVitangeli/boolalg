@@ -120,6 +120,7 @@ object SimpleParser extends Parser {
         case Some(op) => op match
             case OperatorType.And => currValue && result
             case OperatorType.Or => currValue || result
+            case OperatorType.Implication => !currValue || result /// p => q is equivalent to ~p v q
             case OperatorType.Negation => throw new RuntimeException("invalid prop")
 
     // defines how to consume and set up state for the first element in the sequence
@@ -131,7 +132,7 @@ object SimpleParser extends Parser {
                 ps.applyNegateToCurrent() 
                 ps.flagHasFirst = false
             case Operator(ttype) => ttype match
-                case OperatorType.And | OperatorType.Or =>
+                case OperatorType.And | OperatorType.Or | OperatorType.Implication =>
                     ps.currOp = Some(ttype)
                     ps.flagHasFirst = false
                 case OperatorType.Negation =>
@@ -169,6 +170,8 @@ object SimpleParser extends Parser {
                         ps.currOp = Some(OperatorType.And)
                     case OperatorType.Or =>
                         ps.currOp = Some(OperatorType.Or)
+                    case OperatorType.Implication =>
+                        ps.currOp = Some(OperatorType.Implication)
         case en: ExprNode =>
             ps.currProp match
                 case None =>

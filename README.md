@@ -13,7 +13,7 @@ Proposition names can be entire words up to 30 characters (lowercase and upperca
 
 ```scala
 // nested proposition with long names
-val prop = "~canAccess v (userLogguedIn v userIsAdmin) ^ isEnabled"
+val prop = "~canAccess v (userLogguedIn v userIsAdmin) ^ (~isEnabled & ~userLogguedIn)"
 
 // boolean values to evaluate the composed proposition
 val params = Map(("canAccess", true), ("userLogguedIn", false), ("userIsAdmin", true), ("isEnabled", true)
@@ -31,6 +31,7 @@ res match
 - v -> Or operator
 - ^ -> And operator
 - ~ -> Negation operator (it can be repeated)
+- & -> logical implication (or logical conditional)
 
 using `sbt run` there is a sample main function that generates a truth table for a given example proposition and storing it in a CSV, the code is in a function-first aproach so in this files you'll find:
 - Tokens.scala: Token generation functions and types

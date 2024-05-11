@@ -4,7 +4,7 @@ import scala.collection.mutable.ArrayBuffer
 sealed trait Token
 
 enum OperatorType:
-  case Or, And, Negation
+  case Or, And, Negation, Implication
 
 
 enum Bracket extends Token:
@@ -15,7 +15,7 @@ case class Proposition(val name: String, var negated: Boolean) extends Token
 case class Operator(val ttype: OperatorType) extends Token
 
 object Tokenizer {
-    val validSpecialChars = Seq('v', '^', '~', ')', '(')
+    val validSpecialChars = Seq('v', '^', '&', '~', ')', '(')
 
     def parse_str(s: String): Array[Token] =
         val buff = ArrayBuffer[Char]()
@@ -40,6 +40,7 @@ object Tokenizer {
                     case 'v' => Operator(OperatorType.Or)
                     case '^' => Operator(OperatorType.And)
                     case '~' => Operator(OperatorType.Negation)
+                    case '&' => Operator(OperatorType.Implication)
                     case ')' => Bracket.Close
                     case '(' => Bracket.Open
                     case x: Char => throw new RuntimeException("invalid char encountered" + x)

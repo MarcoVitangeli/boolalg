@@ -67,9 +67,9 @@ object SimpleParser extends Parser {
         val nodeSt = Stack[ExprNode]()
         val resultStack = Queue[ExprElement]()
 
-        nodeSt.push(ExprNode(Seq()))
-        while (input.hasNext) {
-            input.next match {
+        nodeSt.push(ExprNode(Seq())) // backup node in case it does not start with parenthesis
+        for (elem <- input) {
+            elem match {
                 case Bracket.Open =>
                     if (!resultStack.isEmpty && !nodeSt.isEmpty) {
                         nodeSt.top.content = nodeSt.top.content.appendedAll(

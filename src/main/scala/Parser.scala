@@ -6,7 +6,7 @@ import scala.sys.Prop
 import scala.collection.mutable.Queue
 import scala.annotation.tailrec
 
-case class ParserState(
+class ParserState(
     var currProp: Option[Proposition] = None,
     var currOp: Option[OperatorType] = None,
     var hasNegated: Boolean = false,
@@ -18,13 +18,22 @@ case class ParserState(
         currProp = None
 
     def negate(): Unit =
-        hasNegated != hasNegated
+        hasNegated = !hasNegated
 
     def applyNegateToCurrent(): Unit =
         if (hasNegated) {
             hasNegated = false
-            currValue != currValue
+            currValue = !currValue
         }
+
+    def applyNegated(v: Boolean): Boolean = {
+        if (hasNegated) {
+            hasNegated = false
+            !v
+        } else {
+            v
+        }
+    }
 }
 
 sealed trait Parser {
@@ -89,7 +98,6 @@ object SimpleParser extends Parser {
 
         nodeSt.top
     
-    
     private def dfs(root: ExprNode, m: Map[Char, Boolean]): Boolean =  {
         val cIter = root.content.iterator
         val parserState = ParserState()
@@ -102,22 +110,12 @@ object SimpleParser extends Parser {
                         parserState.currProp match
                             case None => {
                                 parserState.currProp = Some(p)
-                                if (parserState.hasNegated) {
-                                    parserState.hasNegated = false
-                                    parserState.currProp.get.negated = true
-                                }
                                 if (parserState.flagHasFirst) {
                                     parserState.currValue = m.get(p.letter).get
-                                    if (parserState.currProp.get.negated) {
-                                        parserState.currValue != parserState.currValue
-                                    }
+                                    parserState.applyNegateToCurrent() 
                                     parserState.flagHasFirst = false
                                 } else {
-                                    val cVal = m.get(p.letter).get
-                                    if (parserState.currProp.get.negated) {
-                                        cVal != cVal
-                                    }
-
+                                    val cVal = parserState.applyNegated(m.get(p.letter).get)
                                     parserState.currValue = applyOperator(parserState.currValue, cVal, parserState.currOp)
                                     parserState.resetVariables()
                                 }
@@ -126,7 +124,7 @@ object SimpleParser extends Parser {
                                 parserState.currOp match {
                                     case None => throw new RuntimeException("Invalid proposition input")
                                     case Some(value2) =>
-                                        val v2 = m.get(p.letter).get
+                                        val v2 = parserState.applyNegated(m.get(p.letter).get)
                                         parserState.currValue = applyOperator(parserState.currValue, v2, parserState.currOp)
                                         parserState.resetVariables()
                                 }
@@ -156,15 +154,15 @@ object SimpleParser extends Parser {
                                 if (!parserState.currOp.isDefined) {
                                     throw new RuntimeException("invalid prop")
                                 }
-                                val cv = dfs(en, m)
+                                val cv = parserState.applyNegated(dfs(en, m))
                                 parserState.currValue = applyOperator(parserState.currValue, cv, parserState.currOp)
                                 parserState.resetVariables()
                             }
 
                         case Some(_) => {
-                            val cv = dfs(en, m)
-                            parserState.resetVariables()
+                            val cv = parserState.applyNegated(dfs(en, m))
                             parserState.currValue = applyOperator(parserState.currValue, cv, parserState.currOp)
+                            parserState.resetVariables()
                         }
                     }
                 }

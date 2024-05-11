@@ -8,18 +8,15 @@ sealed trait Parser {
     def parse(input:String, params: Map[Char, Boolean]): Try[Boolean]
 }
 
-
-
 case class ExprNode(var content: Seq[ExprNode|Token])
 
 object SimpleParser extends Parser {
-    def parse(input: String, params: Map[Char, Boolean]): Try[Boolean] = {
+    def parse(input: String, params: Map[Char, Boolean]): Try[Boolean] =
         val tokens = parse_str(input) 
 
         val res = generate_tree(tokens.iterator)
 
         Try(dfs(res, params)) 
-    }
 
     /// here, we'll create the expression tree
     /* 
@@ -59,7 +56,9 @@ object SimpleParser extends Parser {
             }
         }
 
-        assert(nodeSt.size == 1)
+        if (nodeSt.size != 1) {
+            throw new RuntimeException("parsing error")
+        }
 
         if (!resultStack.isEmpty) {
             nodeSt.top.content = nodeSt.top.content.appendedAll(resultStack.removeAll.reverse)
@@ -74,7 +73,6 @@ object SimpleParser extends Parser {
         var hasNegated = false
         var flagHasFirst = true
         var currValue = false
-        var hasExpr = false
         
         while (cIter.hasNext) {
             cIter.next match {
@@ -94,64 +92,29 @@ object SimpleParser extends Parser {
                                         currValue != currValue
                                     }
                                     flagHasFirst = false
-                                } else if (!hasExpr) {
+                                } else {
                                     val cVal = m.get(p.letter).get
                                     if (currProp.get.negated) {
                                         cVal != cVal
                                     }
-                                    currOp match
-                                        case None => throw new RuntimeException("Invalid proposition input") // invalid proposition in that case
-                                        case Some(value) => value match
-                                            case OperatorType.And =>
-                                                currValue = currValue && cVal
-                                            case OperatorType.Or =>
-                                                currValue = currValue || cVal
-                                            case OperatorType.Negation => throw new RuntimeException("Invalid proposition input") // invalid proposition in that case
-                                } else {
-                                    hasExpr = false
-                                    var v = m.get(p.letter).get
-                                    if (p.negated) {
-                                        v != v
-                                    }
 
-                                    currOp match
-                                        case None => throw new RuntimeException("Invalid proposition input") // invalid proposition in that case
-                                        case Some(value) => value match
-                                            case OperatorType.And => 
-                                                currValue = currValue && v
-                                            case OperatorType.Or =>
-                                                currValue = currValue || v
-                                            case OperatorType.Negation => throw new RuntimeException("Invalid proposition input") // invalid proposition in that case
-                                    
-                                    
+                                    currValue = applyOperator(currValue, cVal, currOp)
                                     currProp = None
+                                    currOp = None
                                 }
                             }
                             case Some(_) => 
                                 currOp match {
-                                    case None => throw new RuntimeException("Invalid proposition input") // invalid proposition in that case
+                                    case None => throw new RuntimeException("Invalid proposition input")
                                     case Some(value2) =>
-                                        val v1 = currValue
                                         val v2 = m.get(p.letter).get
-
-                                        value2 match
-                                            case OperatorType.And => {
-                                                currOp = None
-                                                currProp = None
-                                                currValue = v1 && v2
-                                            }
-                                            case OperatorType.Or => {
-                                                currOp = None
-                                                currProp = None
-                                                currValue = v1 || v2
-                                            }
-                                            case OperatorType.Negation => throw new RuntimeException("invalid proposition input")
+                                        currValue = applyOperator(currValue, v2, currOp)
+                                        currOp = None
+                                        currProp = None
                                 }
-                            //
                     case Operator(ttype) =>
                         ttype match {
                             case OperatorType.Negation => hasNegated = !hasNegated
-                                    
                             case OperatorType.And => {
                                 currOp = Some(OperatorType.And)
                             }
@@ -159,7 +122,6 @@ object SimpleParser extends Parser {
                                 currOp = Some(OperatorType.Or)
                             }
                         }
-                
                 case en: ExprNode => {
                     currProp match {
                         case None =>
@@ -171,37 +133,36 @@ object SimpleParser extends Parser {
                                     currValue != currValue
                                 }
                                 flagHasFirst = false
-                            }
-                            if (hasExpr || currOp.isDefined) {
+                            } else {
+                                // since it has an operator defined but no
+                                // proposition and we know it is not the first element
+                                // we assume it as that there is implicitly
+                                // an expression before or otherwise we throw an error
+                                if (!currOp.isDefined) {
+                                    throw new RuntimeException("invalid prop")
+                                }
                                 val cv = dfs(en, m)
-                                hasExpr = false
-                                currOp match
-                                    case None => throw new RuntimeException("invalid prop")
-                                    case Some(value) => value match
-                                        case OperatorType.And => currValue = currValue && cv
-                                        case OperatorType.Or => currValue = currValue || cv
-                                        case OperatorType.Negation => throw new RuntimeException("invalid prop")
+                                currValue = applyOperator(currValue, cv, currOp)
                                 currOp = None
                             }
-
 
                         case Some(_) => {
                             val cv = dfs(en, m)
                             currProp = None
-                            hasExpr = false
-                            currOp match
-                                case None => throw new RuntimeException("invalid prop")
-                                case Some(value) => value match
-                                    case OperatorType.And => currValue = currValue && cv
-                                    case OperatorType.Or => currValue = currValue || cv
-                                    case OperatorType.Negation => throw new RuntimeException("invalid prop")
+                            currValue = applyOperator(currValue, cv, currOp)
                         }
                     }
                 }
             }
         }
-
+    
         currValue 
-    }
 }
 
+    def applyOperator(currValue: Boolean, result: Boolean, op: Option[OperatorType]): Boolean = op match
+        case None => throw new RuntimeException("invalid prop")
+        case Some(op) => op match
+            case OperatorType.And => currValue && result
+            case OperatorType.Or => currValue || result
+            case OperatorType.Negation => throw new RuntimeException("invalid prop")
+}

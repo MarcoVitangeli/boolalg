@@ -2,8 +2,8 @@ import Tokenizer.parse_str
 import scala.util.{Try, Success}
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
-import scala.concurrent.ExecutionContext.parasitic
-import scala.quoted.Expr
+
+type ExprElement = ExprNode | Token
 
 class ParserState(
     val valueSet: Map[Char, Boolean],
@@ -40,7 +40,7 @@ sealed trait Parser {
     def parse(input:String, params: Map[Char, Boolean]): Try[Boolean]
 }
 
-case class ExprNode(var content: Seq[ExprNode|Token])
+case class ExprNode(var content: Seq[ExprElement])
 
 object SimpleParser extends Parser {
     def parse(input: String, params: Map[Char, Boolean]): Try[Boolean] =
@@ -65,7 +65,7 @@ object SimpleParser extends Parser {
      */
     private def generate_tree(input: Iterator[Token]): ExprNode =
         val nodeSt = Stack[ExprNode]()
-        val resultStack = Queue[ExprNode|Token]()
+        val resultStack = Queue[ExprElement]()
 
         nodeSt.push(ExprNode(Seq()))
         while (input.hasNext) {
@@ -98,22 +98,24 @@ object SimpleParser extends Parser {
 
         nodeSt.top
     
+    // dfs performs DFS (Depth-First-Search) over the expression tree and consumes
+    // the tokens or expressions present
     private def dfs(root: ExprNode, valueSet: Map[Char, Boolean]): Boolean =  {
         val cIter = root.content.iterator
         val parserState = ParserState(valueSet)
-        
-        while (cIter.hasNext) {
+
+        for (node <- cIter) {
             if (parserState.flagHasFirst) {
-                consumeFirst(cIter ,parserState)
+                consumeFirst(node ,parserState)
             } else {
-                consume(cIter, parserState)
+                consume(node, parserState)
             }
         }
     
         parserState.currValue 
     }
     
-    def applyOperator(currValue: Boolean, result: Boolean, op: Option[OperatorType]): Boolean = op match
+    private def applyOperator(currValue: Boolean, result: Boolean, op: Option[OperatorType]): Boolean = op match
         case None => throw new RuntimeException("invalid prop")
         case Some(op) => op match
             case OperatorType.And => currValue && result
@@ -121,7 +123,7 @@ object SimpleParser extends Parser {
             case OperatorType.Negation => throw new RuntimeException("invalid prop")
 
     // defines how to consume and set up state for the first element in the sequence
-    def consumeFirst(it: Iterator[ExprNode | Token], ps: ParserState) = it.next match
+    private def consumeFirst(node: ExprElement, ps: ParserState) = node match
         case t: Token => t match
             case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
             case p: Proposition =>
@@ -143,7 +145,7 @@ object SimpleParser extends Parser {
 
     // defines how to consume and set up state for a random element in the sequence.
     // it makes optimizations based on the premise that some operation/operator happened before
-    def consume(it: Iterator[ExprNode | Token], ps: ParserState) = it.next match
+    private def consume(node: ExprElement, ps: ParserState) = node match
         case t: Token => t match
             case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
             case p: Proposition => 

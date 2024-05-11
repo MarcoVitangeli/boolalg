@@ -1,10 +1,7 @@
 import Tokenizer.parse_str
 import scala.util.{Try, Success}
 import scala.collection.mutable.Stack
-import javax.swing.text.AbstractDocument.Content
-import scala.sys.Prop
 import scala.collection.mutable.Queue
-import scala.annotation.tailrec
 
 class ParserState(
     var currProp: Option[Proposition] = None,

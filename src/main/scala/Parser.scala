@@ -6,7 +6,7 @@ import scala.collection.mutable.Queue
 type ExprElement = ExprNode | Token
 
 class ParserState(
-    val valueSet: Map[Char, Boolean],
+    val valueSet: Map[String, Boolean],
     var currProp: Option[Proposition] = None,
     var currOp: Option[OperatorType] = None,
     var hasNegated: Boolean = false,
@@ -37,13 +37,13 @@ class ParserState(
 }
 
 sealed trait Parser {
-    def parse(input:String, params: Map[Char, Boolean]): Try[Boolean]
+    def parse(input:String, params: Map[String, Boolean]): Try[Boolean]
 }
 
 case class ExprNode(var content: Seq[ExprElement])
 
 object SimpleParser extends Parser {
-    def parse(input: String, params: Map[Char, Boolean]): Try[Boolean] =
+    def parse(input: String, params: Map[String, Boolean]): Try[Boolean] =
         val tokens = parse_str(input) 
 
         val res = generate_tree(tokens.iterator)
@@ -100,7 +100,7 @@ object SimpleParser extends Parser {
     
     // dfs performs DFS (Depth-First-Search) over the expression tree and consumes
     // the tokens or expressions present
-    private def dfs(root: ExprNode, valueSet: Map[Char, Boolean]): Boolean =  {
+    private def dfs(root: ExprNode, valueSet: Map[String, Boolean]): Boolean =  {
         val cIter = root.content.iterator
         val parserState = ParserState(valueSet)
 
@@ -127,7 +127,7 @@ object SimpleParser extends Parser {
         case t: Token => t match
             case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
             case p: Proposition =>
-                ps.currValue = ps.valueSet.get(p.letter).get
+                ps.currValue = ps.valueSet.get(p.name).get
                 ps.applyNegateToCurrent() 
                 ps.flagHasFirst = false
             case Operator(ttype) => ttype match
@@ -152,14 +152,14 @@ object SimpleParser extends Parser {
                 ps.currProp match
                     case None =>
                         ps.currProp = Some(p)
-                        val cVal = ps.applyNegated(ps.valueSet.get(p.letter).get)
+                        val cVal = ps.applyNegated(ps.valueSet.get(p.name).get)
                         ps.currValue = applyOperator(ps.currValue, cVal, ps.currOp)
                         ps.resetVariables()
                     case Some(_) => 
                         ps.currOp match
                             case None => throw new RuntimeException("Invalid proposition input")
                             case Some(value2) =>
-                                val v2 = ps.applyNegated(ps.valueSet.get(p.letter).get)
+                                val v2 = ps.applyNegated(ps.valueSet.get(p.name).get)
                                 ps.currValue = applyOperator(ps.currValue, v2, ps.currOp)
                                 ps.resetVariables()
             case Operator(ttype) =>

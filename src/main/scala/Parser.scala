@@ -6,6 +6,7 @@ import scala.concurrent.ExecutionContext.parasitic
 import scala.quoted.Expr
 
 class ParserState(
+    val valueSet: Map[Char, Boolean],
     var currProp: Option[Proposition] = None,
     var currOp: Option[OperatorType] = None,
     var hasNegated: Boolean = false,
@@ -97,73 +98,16 @@ object SimpleParser extends Parser {
 
         nodeSt.top
     
-    private def dfs(root: ExprNode, m: Map[Char, Boolean]): Boolean =  {
+    private def dfs(root: ExprNode, valueSet: Map[Char, Boolean]): Boolean =  {
         val cIter = root.content.iterator
-        val parserState = ParserState()
+        val parserState = ParserState(valueSet)
         
         while (cIter.hasNext) {
             if (parserState.flagHasFirst) {
-                cIter.next match
-                    case t: Token => t match
-                        case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
-                        case p: Proposition =>
-                            parserState.currValue = m.get(p.letter).get
-                            parserState.applyNegateToCurrent() 
-                            parserState.flagHasFirst = false
-                        case Operator(ttype) => ttype match
-                            case OperatorType.And | OperatorType.Or =>
-                                parserState.currOp = Some(ttype)
-                                parserState.flagHasFirst = false
-                            case OperatorType.Negation =>
-                                parserState.negate() // negate does not count in our model as the first operator
-                    case en: ExprNode =>
-                        val cv = dfs(en, m)
-                        parserState.currValue = cv
-                        parserState.applyNegateToCurrent()
-                        parserState.flagHasFirst = false
-                
-            } else cIter.next match
-                case t: Token => t match
-                    case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
-                    case p: Proposition => 
-                        parserState.currProp match
-                            case None =>
-                                parserState.currProp = Some(p)
-                                val cVal = parserState.applyNegated(m.get(p.letter).get)
-                                parserState.currValue = applyOperator(parserState.currValue, cVal, parserState.currOp)
-                                parserState.resetVariables()
-                            case Some(_) => 
-                                parserState.currOp match
-                                    case None => throw new RuntimeException("Invalid proposition input")
-                                    case Some(value2) =>
-                                        val v2 = parserState.applyNegated(m.get(p.letter).get)
-                                        parserState.currValue = applyOperator(parserState.currValue, v2, parserState.currOp)
-                                        parserState.resetVariables()
-                    case Operator(ttype) =>
-                        ttype match
-                            case OperatorType.Negation => parserState.negate()
-                            case OperatorType.And =>
-                                parserState.currOp = Some(OperatorType.And)
-                            case OperatorType.Or =>
-                                parserState.currOp = Some(OperatorType.Or)
-                case en: ExprNode =>
-                    parserState.currProp match
-                        case None =>
-                            // since it has an operator defined but no
-                            // proposition and we know it is not the first element
-                            // we assume it as that there is implicitly
-                            // an expression before or otherwise we throw an error
-                            if (!parserState.currOp.isDefined) {
-                                throw new RuntimeException("invalid prop")
-                            }
-                            val cv = parserState.applyNegated(dfs(en, m))
-                            parserState.currValue = applyOperator(parserState.currValue, cv, parserState.currOp)
-                            parserState.resetVariables()
-
-                        case Some(_) =>
-                            val cv = parserState.applyNegated(dfs(en, m))
-                            parserState.currValue = applyOperator(parserState.currValue, cv, parserState.currOp)
-                            parserState.resetVariables()
+                consumeFirst(cIter ,parserState)
+            } else {
+                consume(cIter, parserState)
+            }
         }
     
         parserState.currValue 
@@ -175,4 +119,70 @@ object SimpleParser extends Parser {
             case OperatorType.And => currValue && result
             case OperatorType.Or => currValue || result
             case OperatorType.Negation => throw new RuntimeException("invalid prop")
+
+    // defines how to consume and set up state for the first element in the sequence
+    def consumeFirst(it: Iterator[ExprNode | Token], ps: ParserState) = it.next match
+        case t: Token => t match
+            case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
+            case p: Proposition =>
+                ps.currValue = ps.valueSet.get(p.letter).get
+                ps.applyNegateToCurrent() 
+                ps.flagHasFirst = false
+            case Operator(ttype) => ttype match
+                case OperatorType.And | OperatorType.Or =>
+                    ps.currOp = Some(ttype)
+                    ps.flagHasFirst = false
+                case OperatorType.Negation =>
+                    ps.negate() // negate does not count in our model as the first operator
+        case en: ExprNode =>
+            val cv = dfs(en, ps.valueSet)
+            ps.currValue = cv
+            ps.applyNegateToCurrent()
+            ps.flagHasFirst = false
+
+
+    // defines how to consume and set up state for a random element in the sequence.
+    // it makes optimizations based on the premise that some operation/operator happened before
+    def consume(it: Iterator[ExprNode | Token], ps: ParserState) = it.next match
+        case t: Token => t match
+            case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
+            case p: Proposition => 
+                ps.currProp match
+                    case None =>
+                        ps.currProp = Some(p)
+                        val cVal = ps.applyNegated(ps.valueSet.get(p.letter).get)
+                        ps.currValue = applyOperator(ps.currValue, cVal, ps.currOp)
+                        ps.resetVariables()
+                    case Some(_) => 
+                        ps.currOp match
+                            case None => throw new RuntimeException("Invalid proposition input")
+                            case Some(value2) =>
+                                val v2 = ps.applyNegated(ps.valueSet.get(p.letter).get)
+                                ps.currValue = applyOperator(ps.currValue, v2, ps.currOp)
+                                ps.resetVariables()
+            case Operator(ttype) =>
+                ttype match
+                    case OperatorType.Negation => ps.negate()
+                    case OperatorType.And =>
+                        ps.currOp = Some(OperatorType.And)
+                    case OperatorType.Or =>
+                        ps.currOp = Some(OperatorType.Or)
+        case en: ExprNode =>
+            ps.currProp match
+                case None =>
+                    // since it has an operator defined but no
+                    // proposition and we know it is not the first element
+                    // we assume it as that there is implicitly
+                    // an expression before or otherwise we throw an error
+                    if (!ps.currOp.isDefined) {
+                        throw new RuntimeException("invalid prop")
+                    }
+                    val cv = ps.applyNegated(dfs(en, ps.valueSet))
+                    ps.currValue = applyOperator(ps.currValue, cv, ps.currOp)
+                    ps.resetVariables()
+
+                case Some(_) =>
+                    val cv = ps.applyNegated(dfs(en, ps.valueSet))
+                    ps.currValue = applyOperator(ps.currValue, cv, ps.currOp)
+                    ps.resetVariables()
 }

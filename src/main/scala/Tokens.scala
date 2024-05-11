@@ -29,7 +29,7 @@ object Tokenizer {
         }
 
     private def validChars(c: Int) = c match
-        case c if c <= 'z' && c >= 'a' => true
+        case c if (c <= 'z' && c >= 'a') || (c <= 'Z' && c >= 'A') => true
         case c if Seq('v', '^', '~', ')', '(').contains(c) => true
         case _ => false 
 }

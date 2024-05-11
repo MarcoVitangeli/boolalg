@@ -3,6 +3,29 @@ import scala.util.{Try, Success}
 import scala.collection.mutable.Stack
 import javax.swing.text.AbstractDocument.Content
 import scala.sys.Prop
+import scala.collection.mutable.Queue
+import scala.annotation.tailrec
+
+case class ParserState(
+    var currProp: Option[Proposition] = None,
+    var currOp: Option[OperatorType] = None,
+    var hasNegated: Boolean = false,
+    var flagHasFirst: Boolean = true,
+    var currValue: Boolean = false) {
+
+    def resetVariables(): Unit =
+        currOp = None
+        currProp = None
+
+    def negate(): Unit =
+        hasNegated != hasNegated
+
+    def applyNegateToCurrent(): Unit =
+        if (hasNegated) {
+            hasNegated = false
+            currValue != currValue
+        }
+}
 
 sealed trait Parser {
     def parse(input:String, params: Map[Char, Boolean]): Try[Boolean]
@@ -33,7 +56,7 @@ object SimpleParser extends Parser {
      */
     private def generate_tree(input: Iterator[Token]): ExprNode =
         val nodeSt = Stack[ExprNode]()
-        val resultStack = Stack[ExprNode|Token]()
+        val resultStack = Queue[ExprNode|Token]()
 
         nodeSt.push(ExprNode(Seq()))
         while (input.hasNext) {
@@ -41,18 +64,18 @@ object SimpleParser extends Parser {
                 case Bracket.Open => {
                     if (!resultStack.isEmpty && !nodeSt.isEmpty) {
                         nodeSt.top.content = nodeSt.top.content.appendedAll(
-                            resultStack.removeAll.reverse
+                            resultStack.removeAll
                         )
                     }
                     nodeSt.push(ExprNode(Seq()))
                 }
                 case Bracket.Close => {
                     val currNode = nodeSt.pop()
-                    currNode.content = currNode.content.appendedAll(resultStack.removeAll.reverse)
-                    resultStack.push(currNode)
+                    currNode.content = currNode.content.appendedAll(resultStack.removeAll)
+                    resultStack.enqueue(currNode)
                 }
                 case t: Token => 
-                    resultStack.push(t) 
+                    resultStack.enqueue(t) 
             }
         }
 
@@ -61,104 +84,96 @@ object SimpleParser extends Parser {
         }
 
         if (!resultStack.isEmpty) {
-            nodeSt.top.content = nodeSt.top.content.appendedAll(resultStack.removeAll.reverse)
+            nodeSt.top.content = nodeSt.top.content.appendedAll(resultStack.removeAll)
         }
 
         nodeSt.top
     
+    
     private def dfs(root: ExprNode, m: Map[Char, Boolean]): Boolean =  {
         val cIter = root.content.iterator
-        var currProp: Option[Proposition] = None
-        var currOp: Option[OperatorType] = None
-        var hasNegated = false
-        var flagHasFirst = true
-        var currValue = false
+        val parserState = ParserState()
         
         while (cIter.hasNext) {
             cIter.next match {
                 case t: Token => t match
                     case Bracket.Close | Bracket.Open => throw new RuntimeException("Invalid proposition input")
                     case p: Proposition => 
-                        currProp match
+                        parserState.currProp match
                             case None => {
-                                currProp = Some(p)
-                                if (hasNegated) {
-                                    hasNegated = false
-                                    currProp.get.negated = true
+                                parserState.currProp = Some(p)
+                                if (parserState.hasNegated) {
+                                    parserState.hasNegated = false
+                                    parserState.currProp.get.negated = true
                                 }
-                                if (flagHasFirst) {
-                                    currValue = m.get(p.letter).get
-                                    if (currProp.get.negated) {
-                                        currValue != currValue
+                                if (parserState.flagHasFirst) {
+                                    parserState.currValue = m.get(p.letter).get
+                                    if (parserState.currProp.get.negated) {
+                                        parserState.currValue != parserState.currValue
                                     }
-                                    flagHasFirst = false
+                                    parserState.flagHasFirst = false
                                 } else {
                                     val cVal = m.get(p.letter).get
-                                    if (currProp.get.negated) {
+                                    if (parserState.currProp.get.negated) {
                                         cVal != cVal
                                     }
 
-                                    currValue = applyOperator(currValue, cVal, currOp)
-                                    currProp = None
-                                    currOp = None
+                                    parserState.currValue = applyOperator(parserState.currValue, cVal, parserState.currOp)
+                                    parserState.resetVariables()
                                 }
                             }
                             case Some(_) => 
-                                currOp match {
+                                parserState.currOp match {
                                     case None => throw new RuntimeException("Invalid proposition input")
                                     case Some(value2) =>
                                         val v2 = m.get(p.letter).get
-                                        currValue = applyOperator(currValue, v2, currOp)
-                                        currOp = None
-                                        currProp = None
+                                        parserState.currValue = applyOperator(parserState.currValue, v2, parserState.currOp)
+                                        parserState.resetVariables()
                                 }
                     case Operator(ttype) =>
                         ttype match {
-                            case OperatorType.Negation => hasNegated = !hasNegated
+                            case OperatorType.Negation => parserState.negate()
                             case OperatorType.And => {
-                                currOp = Some(OperatorType.And)
+                                parserState.currOp = Some(OperatorType.And)
                             }
                             case OperatorType.Or => {
-                                currOp = Some(OperatorType.Or)
+                                parserState.currOp = Some(OperatorType.Or)
                             }
                         }
                 case en: ExprNode => {
-                    currProp match {
+                    parserState.currProp match {
                         case None =>
-                            if (flagHasFirst) {
+                            if (parserState.flagHasFirst) {
                                 val cv = dfs(en, m)
-                                currValue = cv
-                                if (hasNegated) {
-                                    hasNegated = false
-                                    currValue != currValue
-                                }
-                                flagHasFirst = false
+                                parserState.currValue = cv
+                                parserState.applyNegateToCurrent()
+                                parserState.flagHasFirst = false
                             } else {
                                 // since it has an operator defined but no
                                 // proposition and we know it is not the first element
                                 // we assume it as that there is implicitly
                                 // an expression before or otherwise we throw an error
-                                if (!currOp.isDefined) {
+                                if (!parserState.currOp.isDefined) {
                                     throw new RuntimeException("invalid prop")
                                 }
                                 val cv = dfs(en, m)
-                                currValue = applyOperator(currValue, cv, currOp)
-                                currOp = None
+                                parserState.currValue = applyOperator(parserState.currValue, cv, parserState.currOp)
+                                parserState.resetVariables()
                             }
 
                         case Some(_) => {
                             val cv = dfs(en, m)
-                            currProp = None
-                            currValue = applyOperator(currValue, cv, currOp)
+                            parserState.resetVariables()
+                            parserState.currValue = applyOperator(parserState.currValue, cv, parserState.currOp)
                         }
                     }
                 }
             }
         }
     
-        currValue 
-}
-
+        parserState.currValue 
+    }
+    
     def applyOperator(currValue: Boolean, result: Boolean, op: Option[OperatorType]): Boolean = op match
         case None => throw new RuntimeException("invalid prop")
         case Some(op) => op match

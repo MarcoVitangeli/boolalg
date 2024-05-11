@@ -13,4 +13,6 @@ It is able to parse and evaluate it with determined parameters for each single p
 - ^ -> And operator
 - ~ -> Negation operator (it can be repeated)
 
-using `sbt run` there is a sample main function that generates a truth table for a given example proposition
+using `sbt run` there is a sample main function that generates a truth table for a given example proposition, the code is in a function-first aproach so in this files you'll find:
+- Tokens.scala: Token generation functions and types
+- Parser.scala: recursive expression parser functions. The parser makes a DFS over an expression tree recursively executing complex expressions

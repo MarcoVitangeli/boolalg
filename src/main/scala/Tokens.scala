@@ -28,7 +28,7 @@ object Tokenizer {
             case c => Proposition(c, false)
         }
 
-    def validChars(c: Int) = c match
+    private def validChars(c: Int) = c match
         case c if c <= 'z' && c >= 'a' => true
         case c if Seq('v', '^', '~', ')', '(').contains(c) => true
         case _ => false 

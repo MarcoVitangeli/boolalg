@@ -27,8 +27,8 @@ object SimpleParser extends Parser {
         - Each node represents a single unit of execution (anything inside parenthesis xd)
         - Each node may contain:
             - 0-level executions (meaning, direct operations happening inside the parenthesis)
-            - n-deep executions (other parentesis inside them)
-            - everytime we see a parenthesis, we'll recursively operato uppoin it
+            - n-deep executions (other parenthesis inside them)
+            - everytime we see a parenthesis, we'll recursively operate upon it
 
     To achieve that, in the parser we must translate from Tokens to an easier to traverse
     tree-like structure for this to traverse and then execute on-the-fly
